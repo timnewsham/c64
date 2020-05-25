@@ -198,10 +198,12 @@ def readSector(fn, t, s) :
     f.seek(getSecOffset(t,s) * 256)
     d = f.read(256)
     f.close()
+    #print "read", t,s, ' '.join('%02x' % ord(b) for b in d)
     return d
 
 def writeSector(fn, t, s, d) :
     assert len(d) == 256
+    #print "write", t,s, ' '.join('%02x' % ord(b) for b in d)
     f = file(fn, 'r+b')
     f.seek(getSecOffset(t,s) * 256)
     d = f.write(d)
@@ -224,6 +226,11 @@ class Disk(object) :
     def sync(self) :
         self.writeDir()
         self.writeBAM()
+
+    def showBam(self) :
+        for t,b in enumerate(self.bam.bam) :
+            print 'bam %d:' % (t+1), ' '.join(str(n) for n in sorted(b))
+            break # XXX
 
     def readDir(self) :
         t,s = 18,1
@@ -249,18 +256,22 @@ class Disk(object) :
                 sz = s2
             else :
                 sz = 256
-            print 'read', t2,s2,sz, d.encode('hex')
+            #print 'read', t2,s2,sz, d.encode('hex')
             yield t,s,d[2:sz]
             t,s = t2,s2
 
     def freeSector(self, t, s) :
+        print 'free', t,s
         assert t > 0
+        assert s not in self.bam.bam[t-1]
         self.bam.bam[t-1].add(s)
 
     def allocSector(self) :
         for t,fr in enumerate(self.bam.bam) :
             if fr :
-                return t+1, fr.pop()
+                s = fr.pop()
+                print 'alloc', t+1, s
+                return t+1, s
 
     def freeFile(self, loc) :
         for t,s,d in self.fileSectors(loc) :
@@ -269,7 +280,9 @@ class Disk(object) :
     def removeFile(self, fn) :
         for d in self.dir :
             if d.name == fn :
-                self.freeFile(self.dir.loc)
+                #self.showBam()
+                self.freeFile(d.loc)
+                #self.showBam()
                 d.typ == 0
                 d.name = '\0' * 16
                 return True
@@ -290,7 +303,6 @@ class Disk(object) :
             (lt,ls),sz = (0, len(bs)+2), 0
         t,s = self.allocSector()
         dat = struct.pack('<BB', lt,ls) + pad(ours, 254, '\0')
-        print 'write', t,s, dat.encode('hex')
         writeSector(self.fn, t, s, dat)
         return (t,s),sz+1
 
@@ -311,7 +323,6 @@ class Disk(object) :
             d.name = fn
             d.typ = 0x82
             bs = struct.pack('<H', addr) + dat
-            loc = self.allocSector()
             d.loc,d.size = self.writeData(bs)
             return True
 
@@ -333,9 +344,17 @@ def test() :
         d.dir[0].name = 'RENAME'
         d.bam.name = 'MYDISK'
         d.sync()
+    if 0 :
+        d.writeFile("ABC", 0xc000, "AABBCCDDEEFFGG")
+        d.sync()
     if 1 :
         d.writeFile("ABC", 0xc000, "AABBCCDDEEFFGG")
         d.sync()
-    #print repr(d.readFile('DIR'))
-    print repr(d.readFile('RENAME'))
+        d.removeFile("ABC")
+        d.sync()
+    if 0 :
+        #print repr(d.readFile('DIR'))
+        print repr(d.readFile('RENAME'))
 
+if __name__ == '__main__' :
+    test()

@@ -9,6 +9,10 @@ class SyntaxError(Exception) :
 class AsmError(Exception) :
     pass
 
+if 1 :
+    SyntaxError = None
+    AsmError = None
+
 class Buf(object) :
     def __init__(self, s) :
         self.buf = s
@@ -265,6 +269,8 @@ def parseLine(b) :
         num = parseNum(b)
         require(num, "missing value")
         v =  Val("setdot", val=num)
+    elif b.peek() == '\n' :
+        v = Val(None) # blank line
     else :
         raise SyntaxError("unexpected")
 
@@ -506,6 +512,8 @@ def execLine(vars, l, reqVar) :
         bs = [opnum] + bs
         #print opnum, bs, sz, k
         assert sz == len(bs)
+    elif l.typ == None :
+        bs = []
     else :
         assert 0
     vars['*'] += len(bs)
