@@ -261,7 +261,7 @@ class Disk(object) :
             t,s = t2,s2
 
     def freeSector(self, t, s) :
-        print 'free', t,s
+        #print 'free', t,s
         assert t > 0
         assert s not in self.bam.bam[t-1]
         self.bam.bam[t-1].add(s)
@@ -270,7 +270,7 @@ class Disk(object) :
         for t,fr in enumerate(self.bam.bam) :
             if fr :
                 s = fr.pop()
-                print 'alloc', t+1, s
+                #print 'alloc', t+1, s
                 return t+1, s
 
     def freeFile(self, loc) :

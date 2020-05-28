@@ -10,7 +10,7 @@ r = asm(fn)
 if r :
     base,bs = r
     bs = ''.join(chr(b) for b in bs)
-    d = Disk('test.d64')
+    d = Disk('asm.d64')
     d.removeFile("ASM")
     d.writeFile("ASM", base, bs)
     d.sync()
