@@ -67,9 +67,9 @@ def parseInt(b) :
         return Val("int", val=n)
 
 def parseVar(b) :
-    if b.peek().isalpha() :
+    if b.peek() and b.peek().isalpha() :
         s = ''
-        while b.peek().isalpha() or b.peek().isdigit() or b.peek() in "_" :
+        while b.peek() and (b.peek().isalpha() or b.peek().isdigit() or b.peek() in "_") :
             s += b.next()
         return Val("var", name=s)
 
@@ -146,22 +146,22 @@ def parseOpArg(b) :
         b.skipSpaces()
         if b.match(",") :
             b.skipSpaces()
-            var = parseVar(b)
-            if var is not None or var.name.lower != "x" :
+            var2 = parseVar(b)
+            if var2 is None or var2.name.lower != "x" :
                 raise SyntaxError("bad index")
             b.skipSpaces()
             expect(b, ")")
-            v = Val("X,ind", val=var)
+            v = Val("X,ind", val=num)
         elif b.match(")") :
             b.skipSpaces()
             if b.match(",") :
                 b.skipSpaces()
-                var = parseVar(b)
-                if var is not None or var.name.lower != "y" :
+                var2 = parseVar(b)
+                if var2 is None or var2.name.lower() != "y" :
                     raise SyntaxError("bad index")
-                v = Val("ind,Y", val=var)
+                v = Val("ind,Y", val=num)
             else :
-                v = Val("ind", val=var)
+                v = Val("ind", val=num)
     else :
         v = Val("impl")
     return v
@@ -279,12 +279,19 @@ def parseLine(b) :
         raise SyntaxError("expected EOL, got %r" % b.peek())
     return v
 
+def stripComments(l) :
+    if ';' in l :
+        l = l.split(';',1)[0] + '\n'
+    return l
+
 def parseFile(fn) :
     f = file(fn)
     lno = 0
     prog = []
     try :
         for l in f :
+            l = stripComments(l)
+
             lno += 1
             b = Buf(l)
             v = parseLine(b)
@@ -475,12 +482,12 @@ def encSigned8(n) :
 def evalOpArg(vars, a, reqVar) :
     if a.typ in ['A', 'impl'] :
         return []
-    elif a.typ in  ['#', 'zpg', 'zpg,X', 'zpg,Y'] :
+    elif a.typ in  ['#', 'zpg', 'zpg,X', 'zpg,Y', "ind,X", "ind,Y"] :
         n = evalNum(vars, a.val, reqVar)
         if n > 255 :
             raise AsmError("byte value too big: %x" % n)
         return [n]
-    elif a.typ in ['#', 'abs', 'abs,X', 'ind', 'X,ind', 'ind,Y'] :
+    elif a.typ in ['#', 'abs', 'abs,X', 'abs,Y', 'ind'] :
         #print a
         n = evalNum(vars, a.val, reqVar)
         if n > 65535 :
@@ -494,6 +501,7 @@ def evalOpArg(vars, a, reqVar) :
             n = encSigned8(v - (dot+2))  # rel insns are 2 bytes long
         return [n]
     else :
+        print a.typ
         assert 0
 
 def execLine(vars, l, reqVar) :
