@@ -9,7 +9,7 @@ class SyntaxError(Exception) :
 class AsmError(Exception) :
     pass
 
-if 1 :
+if 0 :
     SyntaxError = None
     AsmError = None
 
